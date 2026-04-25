@@ -1,84 +1,101 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "BSTree.c"
+
+typedef struct Node {
+    int value;
+    struct Node* left;
+    struct Node* right;
+} node;
+
+node* createNode(int value);
+void clearTree(node* root);
+node* findNodeBSTree(node* root, int value);
+int getCountLists(node* root);
+void inorderTraversal(node* root);
+
+int testsPassed = 0;
+int testsFailed = 0;
 
 void testCreateNode() {
-    int assertVal = 1;
-    node* root = createNode(assertVal);
+    printf("Тест: createNode\n");
+    node* n = createNode(10);
 
-    if (root->value == assertVal)
-    {
-        printf("testCreateNode success\n");
+    if (n != NULL && n->value == 10 && n->left == NULL && n->right == NULL) {
+        printf("  [PASS] node{value=10, left=NULL, right=NULL}\n");
+        testsPassed++;
     } else {
-        printf("testCreateNode failed\n");
+        printf("  [FAIL] неверные значения\n");
+        testsFailed++;
     }
-
-    clearTree(root);
-}
-
-void testClearTree() {
-    node* root = createNode(1);
-    clearTree(root);
-
-    if (root == NULL)
-    {
-        printf("testClearTree success\n");
-    } else {
-        printf("testClearTree failed\n");
-    }
+    free(n);
 }
 
 void testFindNodeBSTree() {
-    int assertVal = 15;
-    node* bsTree = createNode(20);
+    printf("Тест: findNodeBSTree\n");
+    node* root = createNode(20);
+    root->left = createNode(10);
+    root->right = createNode(30);
+    root->left->right = createNode(15);
 
-    bsTree->left = createNode(10);
-    bsTree->left->left = createNode(5);
-    bsTree->left->right = createNode(assertVal);
-
-    bsTree->right = createNode(30);
-    bsTree->right->left = createNode(25);
-    bsTree->right->right = createNode(35);
-
-    node* resultNode = findNodeBSTree(bsTree, assertVal);
-
-    if (resultNode->value == assertVal)
-    {
-        printf("testFindNodeBSTree success\n");
+    node* found = findNodeBSTree(root, 15);
+    if (found != NULL && found->value == 15) {
+        printf("  [PASS] найден node с value=15\n");
+        testsPassed++;
     } else {
-        printf("testFindNodeBSTree failed\n");
+        printf("  [FAIL] node не найден\n");
+        testsFailed++;
     }
+    clearTree(root);
+}
 
-    clearTree(bsTree);
+void testFindNodeNotFound() {
+    printf("Тест: findNodeBSTree не найден\n");
+    node* root = createNode(20);
+    root->left = createNode(10);
+
+    node* found = findNodeBSTree(root, 100);
+    if (found == NULL) {
+        printf("  [PASS] возвращает NULL\n");
+        testsPassed++;
+    } else {
+        printf("  [FAIL] должен быть NULL\n");
+        testsFailed++;
+    }
+    clearTree(root);
 }
 
 void testGetCountLists() {
-    int assertVal = 4;
-    node* bsTree = createNode(20);
+    printf("Тест: getCountLists\n");
+    node* root = createNode(10);
+    root->left = createNode(5);
+    root->right = createNode(15);
+    root->left->left = createNode(3);
+    root->left->right = createNode(7);
+    root->right->left = createNode(12);
+    root->right->right = createNode(17);
 
-    bsTree->left = createNode(10);
-    bsTree->left->left = createNode(5);
-    bsTree->left->right = createNode(15);
-
-    bsTree->right = createNode(30);
-    bsTree->right->left = createNode(25);
-    bsTree->right->right = createNode(35);
-
-    int result = getCountLists(bsTree);
-
-    if (result == assertVal)
-    {
-        printf("testGetCountLists success\n");
+    int count = getCountLists(root);
+    if (count == 4) {
+        printf("  [PASS] листьев = 4\n");
+        testsPassed++;
     } else {
-        printf("testGetCountLists failed\n");
+        printf("  [FAIL] ожидалось 4\n");
+        testsFailed++;
     }
+    clearTree(root);
 }
 
 int main() {
+    printf("=== Тесты BSTree ===\n\n");
+
     testCreateNode();
-    // testClearTree(); // see todo clearTree()
     testFindNodeBSTree();
+    testFindNodeNotFound();
     testGetCountLists();
 
-    return EXIT_SUCCESS;
+    printf("\n=== Результаты ===\n");
+    printf("Пройдено: %d\n", testsPassed);
+    printf("Провалено: %d\n", testsFailed);
+
+    return testsFailed > 0 ? 1 : 0;
 }

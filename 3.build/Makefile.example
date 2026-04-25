@@ -1,0 +1,240 @@
+# Makefile — Сборка проекта
+
+## Базовая структура
+
+```makefile
+CC = gcc
+CFLAGS = -Wall -Wextra -Werror -pedantic -std=c11 -O2
+TARGETS = $(patsubst %.c,%,$(wildcard src/*.c))
+```
+
+## Простой Makefile
+
+```makefile
+CC = gcc
+CFLAGS = -Wall -Wextra -Werror -std=c11 -g
+LDFLAGS = -lm
+
+SRC = src
+OBJ = obj
+INC = include
+
+BIN = program
+SRC_FILES = $(wildcard $(SRC)/*.c)
+
+# Зависимости для каждого .c файла
+$(OBJ)/%.o: $(SRC)/%.c
+	$(CC) $(CFLAGS) -I$(INC) -c $< -o $@
+
+$(BIN): $(OBJ)/*.o
+	$(CC) $^ -o $@ $(LDFLAGS)
+
+clean:
+	rm -rf $(OBJ)/*.o $(BIN)
+
+.PHONY: clean
+```
+
+## С зависимостями от headers
+
+```makefile
+CC = gcc
+CFLAGS = -Wall -Wextra -Werror -std=c11 -g -Iinclude
+CFLAGS += -MMD  # генерировать .d файлы
+
+SRC = src
+OBJ = obj
+BIN = program
+
+$(OBJ)/%.o: $(SRC)/%.c | $(OBJ)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BIN): $(OBJ)/*.o
+	$(CC) $^ -o $@
+
+-include $(OBJ)/*.d
+
+$(OBJ):
+	mkdir -p $(OBJ)
+
+clean:
+	rm -rf $(OBJ)/*.o $(BIN) *.d
+```
+
+## С несколькими targets
+
+```makefile
+CC = gcc
+CFLAGS = -Wall -Wextra -std=c11
+
+.PHONY: all clean test
+
+all: libtest.a binary
+
+libtest.a: src/*.c
+	$(CC) -c src/*.c
+	ar rcs $@ *.o
+	rm *.o
+
+binary: src/*.c
+	$(CC) $(CFLAGS) src/*.c -o $@
+
+test: all
+	./test_runner
+```
+
+## Phony targets
+
+```makefile
+.PHONY: clean install test debug release
+
+clean:
+	rm -f $(OBJ)/*.o $(BIN)
+
+install: $(BIN)
+	install -D $(BIN) /usr/local/bin/
+```
+
+## Переменные
+
+| Переменная | Описание |
+|------------|---------|
+| `$@` | имя target |
+| `$<` | имя первой prerequisite |
+| `$^` | все prerequisites |
+| `$?` | prerequisites, новее target |
+| `$(@D)` | директория target |
+| `$(@F)` | имя файла target |
+
+## Пример с auto-dependencies
+
+```makefile
+CC = gcc
+CFLAGS = -Wall -Wextra -std=c11 -g -Iinclude -MD
+DEPS = $(OBJ)/%.d
+
+$(OBJ)/%.o: $(SRC)/%.c | $(OBJ)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+-include $(wildcard $(DEPS))
+
+$(OBJ):
+	mkdir -p $(OBJ)
+```
+
+## Debug/Release
+
+```makefile
+ifdef DEBUG
+    CFLAGS += -g -O0 -DDEBUG
+else
+    CFLAGS += -O2 -DNDEBUG
+endif
+```
+
+```bash
+make DEBUG=1    # debug
+make           # release
+```
+
+## Static analysis
+
+```makefile
+cppcheck:
+	cppcheck --enable=all src/
+
+clang-format:
+	clang-format -i src/*.c
+```
+
+## Тесты в Makefile
+
+```makefile
+CC = gcc
+CFLAGS = -Wall -Wextra -std=c11 -g
+
+test: $(BIN)
+	./test_runner
+
+valgrind: $(BIN)
+	valgrind --leak-check=full --error-exitcode=1 ./$(BIN)
+```
+
+## Полный пример проекта
+
+```
+project/
+├── src/
+│   ├── main.c
+│   ├── lib.c
+│   └── utils.c
+├── include/
+│   ├── lib.h
+│   └── utils.h
+├── tests/
+│   └── test.c
+├── obj/           # .gitignore
+├── Makefile
+└── README.md
+```
+
+```makefile
+CC = gcc
+CFLAGS = -Wall -Wextra -Werror -std=c11 -g -Iinclude -MD
+LDFLAGS = -lm
+
+SRC = src
+TESTS = tests
+INC = include
+OBJ = obj
+BIN = program
+TEST_BIN = test
+
+SOURCES = $(wildcard $(SRC)/*.c)
+OBJECTS = $(SOURCES:$(SRC)/%.c=$(OBJ)/%.o)
+TEST_SRC = $(TESTS)/test.c
+TEST_OBJ = $(OBJ)/test.o
+
+.PHONY: all clean test run valgrind
+
+all: $(BIN)
+
+$(BIN): $(OBJECTS)
+	$(CC) $^ -o $@ $(LDFLAGS)
+
+$(OBJ)/%.o: $(SRC)/%.c | $(OBJ)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ)/test.o: $(TEST_SRC)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+test: $(TEST_BIN)
+	./$(TEST_BIN)
+
+$(TEST_BIN): $(OBJECTS) $(OBJ)/test.o
+	$(CC) $^ -o $@ $(LDFLAGS)
+
+$(OBJ):
+	mkdir -p $(OBJ)
+
+run: $(BIN)
+	./$(BIN)
+
+valgrind: $(BIN)
+	valgrind --leak-check=full --vgdb=error ./$(BIN)
+
+clean:
+	rm -rf $(OBJ) $(BIN) $(TEST_BIN) *.d
+
+-include $(OBJECTS:.o=.d)
+```
+
+## Запуск
+
+```bash
+make              # собрать
+make clean        # очистить
+make test         # запустить тесты
+make run          # запустить программу
+make valgrind     # проверить память
+```

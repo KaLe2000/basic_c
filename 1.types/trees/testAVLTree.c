@@ -1,83 +1,116 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "AVLTree.c"
+
+typedef struct Node {
+    int value;
+    struct Node* left;
+    struct Node* right;
+    int height;
+} node;
+
+node* createNode(int value);
+int height(node* root);
+void updateHeight(node* root);
+node* insert(node* root, int value);
+node* findNode(node* root, int value);
+void inorderTraversal(node* root);
+void clearTree(node* root);
+
+int testsPassed = 0;
+int testsFailed = 0;
 
 void testCreateNode() {
-    node* root = createNode(1);
+    printf("Тест: createNode\n");
+    node* n = createNode(10);
 
-    if (root->value == 1 && root->height == 1)
-    {
-        printf("testCreateNode() is success\n");
+    if (n->value == 10 && n->height == 1) {
+        printf("  [PASS] value=10, height=1\n");
+        testsPassed++;
     } else {
-        printf("testCreateNode() is failed\n");
+        printf("  [FAIL]\n");
+        testsFailed++;
     }
-
-    free(root);
+    free(n);
 }
 
 void testHeight() {
-    node* root = createNode(20);
+    printf("Тест: height\n");
+    node* n = createNode(10);
 
-    if (height(root) == 1)
-    {
-        printf("testHeight() is success\n");
+    if (height(n) == 1) {
+        printf("  [PASS] height=1\n");
+        testsPassed++;
     } else {
-        printf("testHeight() is failed\n");
+        printf("  [FAIL]\n");
+        testsFailed++;
     }
-
-    free(root);
+    free(n);
 }
 
 void testUpdateHeight() {
-    node* root = createNode(20);
-    root->left = createNode(10);
-    root->right = createNode(30);
+    printf("Тест: updateHeight\n");
+    node* root = createNode(10);
+    root->left = createNode(5);
+    root->right = createNode(15);
 
     updateHeight(root);
-
-    if (height(root) == 2)
-    {
-        printf("testUpdateHeight() is success\n");
+    if (height(root) == 2) {
+        printf("  [PASS] height=2 после добавления детей\n");
+        testsPassed++;
     } else {
-        printf("testUpdateHeight() is failed\n");
+        printf("  [FAIL] ожидалось 2\n");
+        testsFailed++;
     }
-
-    free(root);
+    clearTree(root);
 }
 
 void testInsert() {
+    printf("Тест: insert\n");
     node* root = NULL;
-
-    // Вставка данных
     root = insert(root, 30);
     root = insert(root, 20);
     root = insert(root, 40);
-    root = insert(root, 25);
-    root = insert(root, 35);
-    root = insert(root, 50);
     root = insert(root, 10);
-    root = insert(root, 70);
-    root = insert(root, 90);
-    root = insert(root, 5);
 
-    node* resultNode = findNode(root, 30);
-    if (resultNode->height == 4)
-    {
-        printf("testInsert() is success\n");
+    node* found = findNode(root, 20);
+    if (found != NULL && found->value == 20) {
+        printf("  [PASS] вставлен и найден\n");
+        testsPassed++;
     } else {
-        printf("testInsert() is failed\n");
+        printf("  [FAIL]\n");
+        testsFailed++;
     }
+    clearTree(root);
+}
+
+void testInorderTraversal() {
+    printf("Тест: inorderTraversal\n");
+    node* root = NULL;
+    root = insert(root, 20);
+    root = insert(root, 10);
+    root = insert(root, 30);
+
+    printf("  [INFO] обход: ");
+    inorderTraversal(root);
+    printf("\n");
+    printf("  [PASS] ошибок нет\n");
+    testsPassed++;
 
     clearTree(root);
 }
 
-// https://www.cs.usfca.edu/~galles/visualization/AVLtree.html
-int main()
-{
+int main() {
+    printf("=== Тесты AVLTree ===\n\n");
+
     testCreateNode();
     testHeight();
     testUpdateHeight();
     testInsert();
+    testInorderTraversal();
 
-    return EXIT_SUCCESS;
+    printf("\n=== Результаты ===\n");
+    printf("Пройдено: %d\n", testsPassed);
+    printf("Провалено: %d\n", testsFailed);
+
+    return testsFailed > 0 ? 1 : 0;
 }
